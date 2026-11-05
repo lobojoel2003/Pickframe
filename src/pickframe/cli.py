@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import sys
 import threading
 from collections import Counter
 from pathlib import Path
+from typing import Any
 
 from . import __version__, models
 from .cache import AnalysisCache, default_path
@@ -52,7 +54,12 @@ def _add_analysis_options(parser: argparse.ArgumentParser) -> None:
         "--embedder", choices=["auto", "clip", "classic"], default="auto",
         help="similarity model for grouping (auto = CLIP if downloaded, else classic)",
     )  # fmt: skip
-    group.add_argument("--workers", type=_positive_int, default=0, help="worker threads (default: CPU count, max 8)")
+    group.add_argument(
+        "--workers",
+        type=_positive_int,
+        default=0,
+        help="worker threads (default: CPU count, max 8)",
+    )
     group.add_argument("--no-cache", action="store_true", help="re-analyse every file")
 
     tuning = parser.add_argument_group("grouping and decisions")
@@ -95,7 +102,9 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("-V", "--version", action="store_true", help="show version and build information")
+    parser.add_argument(
+        "-V", "--version", action="store_true", help="show version and build information"
+    )
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")
 
     cull = sub.add_parser("cull", help="analyse photos and write ratings", epilog=EPILOG,
@@ -103,7 +112,9 @@ def build_parser() -> argparse.ArgumentParser:
     cull.add_argument("paths", nargs="+", type=Path, help="photo files or folders")
     _add_analysis_options(cull)
     out = cull.add_argument_group("output")
-    out.add_argument("-n", "--dry-run", action="store_true", help="analyse only; do not write any metadata")
+    out.add_argument(
+        "-n", "--dry-run", action="store_true", help="analyse only; do not write any metadata"
+    )
     out.add_argument("--sidecar", choices=[s.value for s in SidecarStyle], default="auto",
                      help="sidecar naming: auto (both), darktable (IMG.CR3.xmp), lightroom (IMG.xmp)")  # fmt: skip
     out.add_argument("--embed-jpeg", action="store_true",
@@ -115,7 +126,9 @@ def build_parser() -> argparse.ArgumentParser:
     out.add_argument("--overwrite", action="store_true", help="overwrite ratings you set by hand")
     out.add_argument("--report", type=Path, action="append", default=[], metavar="FILE",
                      help="write a report (.html, .csv or .json); may be repeated")  # fmt: skip
-    out.add_argument("--save-session", type=Path, metavar="FILE", help="save results to open later in the GUI")
+    out.add_argument(
+        "--save-session", type=Path, metavar="FILE", help="save results to open later in the GUI"
+    )
     out.add_argument("-l", "--list", action="store_true", help="print a line for every photo")
     out.add_argument("-q", "--quiet", action="store_true", help="only print errors")
 
@@ -123,7 +136,9 @@ def build_parser() -> argparse.ArgumentParser:
     reset.add_argument("paths", nargs="+", type=Path)
     reset.add_argument("-r", "--recursive", action="store_true")
     reset.add_argument("-n", "--dry-run", action="store_true")
-    reset.add_argument("--keep-jpeg", action="store_true", help="do not touch XMP embedded in JPEGs")
+    reset.add_argument(
+        "--keep-jpeg", action="store_true", help="do not touch XMP embedded in JPEGs"
+    )
 
     info = sub.add_parser("info", help="show the measurements for individual photos")
     info.add_argument("files", nargs="+", type=Path)
@@ -174,7 +189,9 @@ def _run_analysis(args: argparse.Namespace, settings: Settings, console) -> Cull
             progress.update(task, completed=done, total=total, name=name[:40])
 
         try:
-            return analyzer.run(args.paths, recursive=args.recursive, progress=update, cancel=cancel)
+            return analyzer.run(
+                args.paths, recursive=args.recursive, progress=update, cancel=cancel
+            )
         except KeyboardInterrupt:
             cancel.set()
             raise
@@ -186,17 +203,27 @@ def _print_summary(result: CullResult, console) -> None:
     from rich.table import Table
 
     counts = result.counts()
-    reasons = Counter(flag for d in result.decisions.values() if d.status == REJECT for flag in d.flags)
+    reasons = Counter(
+        flag for d in result.decisions.values() if d.status == REJECT for flag in d.flags
+    )
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_row("Photos", f"[bold]{counts['shots']}[/]")
     table.add_row("Groups", f"[bold]{counts['groups']}[/]")
     table.add_row("Picks", f"[bold green]{counts['pick']}[/]")
     table.add_row("Alternates", f"[bold]{counts['alternate']}[/]")
-    reject_detail = ", ".join(f"{n} {FLAG_TEXT.get(flag, flag)}" for flag, n in reasons.most_common())
-    table.add_row("Rejects", f"[bold red]{counts['reject']}[/]" + (f"  [dim]({reject_detail})[/]" if reject_detail else ""))
+    reject_detail = ", ".join(
+        f"{n} {FLAG_TEXT.get(flag, flag)}" for flag, n in reasons.most_common()
+    )
+    table.add_row(
+        "Rejects",
+        f"[bold red]{counts['reject']}[/]"
+        + (f"  [dim]({reject_detail})[/]" if reject_detail else ""),
+    )
     rate = counts["shots"] / result.elapsed if result.elapsed > 0 else 0.0
     cached = f", {result.cached} from cache" if result.cached else ""
-    table.add_row("Time", f"{result.elapsed:.1f} s ({rate:.1f} photos/s{cached}), grouping: {result.embedder}")
+    table.add_row(
+        "Time", f"{result.elapsed:.1f} s ({rate:.1f} photos/s{cached}), grouping: {result.embedder}"
+    )
     console.print(table)
 
 
@@ -226,7 +253,9 @@ def cmd_cull(args: argparse.Namespace) -> int:
     console = _console(args.quiet)
     settings = _settings_from(args)
     if settings.embedder == "clip" and not models.is_installed("clip"):
-        console.print("[red]The CLIP model is not installed.[/] Run [bold]pickframe models download clip[/].")
+        console.print(
+            "[red]The CLIP model is not installed.[/] Run [bold]pickframe models download clip[/]."
+        )
         return 2
     for path in args.paths:
         if not path.exists():
@@ -252,7 +281,9 @@ def cmd_cull(args: argparse.Namespace) -> int:
 
     report = write_result(result, dry_run=args.dry_run, embed_jpeg=args.embed_jpeg)
     verb = "Would write" if args.dry_run else "Wrote"
-    console.print(f"{verb} XMP for [bold]{len(report.written)}[/] file(s); {len(report.unchanged)} already up to date.")
+    console.print(
+        f"{verb} XMP for [bold]{len(report.written)}[/] file(s); {len(report.unchanged)} already up to date."
+    )
     if report.skipped_manual:
         console.print(
             f"[yellow]Kept {len(report.skipped_manual)} rating(s) you set by hand[/] (use --overwrite to replace them)."
@@ -260,9 +291,13 @@ def cmd_cull(args: argparse.Namespace) -> int:
     for target, message in report.errors[:10]:
         console.print(f"[red]Error[/] {target}: {message}")
     if settings.sidecar_style == SidecarStyle.LIGHTROOM and not args.embed_jpeg:
-        jpegs = sum(1 for s in result.shots for f in s.files if f.suffix.lower() in (".jpg", ".jpeg"))
+        jpegs = sum(
+            1 for s in result.shots for f in s.files if f.suffix.lower() in (".jpg", ".jpeg")
+        )
         if jpegs:
-            console.print("[dim]Lightroom ignores sidecars for JPEG files; add --embed-jpeg to rate them too.[/]")
+            console.print(
+                "[dim]Lightroom ignores sidecars for JPEG files; add --embed-jpeg to rate them too.[/]"
+            )
 
     for path in args.report:
         try:
@@ -281,9 +316,13 @@ def cmd_reset(args: argparse.Namespace) -> int:
     from .writer import reset
 
     console = _console()
-    report = reset(args.paths, recursive=args.recursive, include_jpeg=not args.keep_jpeg, dry_run=args.dry_run)
+    report = reset(
+        args.paths, recursive=args.recursive, include_jpeg=not args.keep_jpeg, dry_run=args.dry_run
+    )
     verb = "Would reset" if args.dry_run else "Reset"
-    console.print(f"{verb} {len(report.written)} file(s) and removed {len(report.removed)} Pickframe sidecar(s).")
+    console.print(
+        f"{verb} {len(report.written)} file(s) and removed {len(report.removed)} Pickframe sidecar(s)."
+    )
     for target, message in report.errors:
         console.print(f"[red]Error[/] {target}: {message}")
     return 1 if report.errors else 0
@@ -294,7 +333,7 @@ def cmd_info(args: argparse.Namespace) -> int:
 
     console = _console()
     analyzer = Analyzer(Settings(), use_cache=False)
-    rows = []
+    rows: list[dict[str, Any]] = []
     for path in args.files:
         analysis = analyzer.analyze_image(path)
         decision = score_shot(analysis, analyzer.settings)
@@ -309,7 +348,9 @@ def cmd_info(args: argparse.Namespace) -> int:
         if a["error"]:
             console.print(f"[red]{a['error']}[/]")
             continue
-        console.print(f"Size {a['width']}x{a['height']}  camera {a['camera'] or '-'}  source {a['source']}")
+        console.print(
+            f"Size {a['width']}x{a['height']}  camera {a['camera'] or '-'}  source {a['source']}"
+        )
         console.print(f"Sharpness {a['sharpness']:.2f}  exposure {a['exposure']:.2f} (brightness {a['brightness']:.2f}, "
                       f"highlights {a['highlights']:.1%}, shadows {a['shadows']:.1%})")  # fmt: skip
         for i, face in enumerate(analysis_faces(a), start=1):
@@ -340,8 +381,12 @@ def cmd_models(args: argparse.Namespace) -> int:
         return 0
     if action == "download":
         model = models.REMOTE_MODELS[args.name]
-        console.print(f"Downloading {model.description} (~{model.approx_mb} MB, {model.license} license)")
-        with Progress(BarColumn(), DownloadColumn(), TransferSpeedColumn(), console=console, transient=True) as bar:
+        console.print(
+            f"Downloading {model.description} (~{model.approx_mb} MB, {model.license} license)"
+        )
+        with Progress(
+            BarColumn(), DownloadColumn(), TransferSpeedColumn(), console=console, transient=True
+        ) as bar:
             task = bar.add_task("download", total=None)
             try:
                 path = models.download(args.name, lambda done, total: bar.update(task, completed=done, total=total),
@@ -384,10 +429,8 @@ def cmd_gui(args: argparse.Namespace) -> int:
 def _safe_streams() -> None:
     """Never crash on consoles that cannot print ★ (e.g. legacy Windows code pages)."""
     for stream in (sys.stdout, sys.stderr):
-        try:
+        with contextlib.suppress(AttributeError, ValueError):
             stream.reconfigure(errors="replace")  # type: ignore[union-attr]
-        except (AttributeError, ValueError):
-            pass
 
 
 def main(argv: list[str] | None = None) -> int:

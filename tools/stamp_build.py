@@ -49,7 +49,9 @@ def git_commit() -> str:
 def check_tag(tag: str, version: str) -> None:
     expected = f"v{version}"
     if tag != expected:
-        raise SystemExit(f"tag {tag!r} does not match package version {version!r} (expected {expected!r})")
+        raise SystemExit(
+            f"tag {tag!r} does not match package version {version!r} (expected {expected!r})"
+        )
     if not SEMVER.match(version):
         raise SystemExit(f"version {version!r} is not semantic (MAJOR.MINOR.PATCH)")
     text = CHANGELOG.read_text(encoding="utf-8") if CHANGELOG.exists() else ""
@@ -93,13 +95,21 @@ VSVersionInfo(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--build", type=int, default=int(os.environ.get("GITHUB_RUN_NUMBER", "0") or 0))
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--build", type=int, default=int(os.environ.get("GITHUB_RUN_NUMBER", "0") or 0)
+    )
     parser.add_argument("--commit", default=os.environ.get("GITHUB_SHA", "") or None)
     parser.add_argument("--channel", default="ci", choices=["dev", "ci", "release"])
-    parser.add_argument("--check-tag", metavar="TAG", help="verify the tag matches the package version")
+    parser.add_argument(
+        "--check-tag", metavar="TAG", help="verify the tag matches the package version"
+    )
     parser.add_argument("--windows-version-file", type=Path, metavar="PATH")
-    parser.add_argument("--release-notes", type=Path, metavar="PATH", help="write this version's changelog section")
+    parser.add_argument(
+        "--release-notes", type=Path, metavar="PATH", help="write this version's changelog section"
+    )
     parser.add_argument("--github-output", action="store_true")
     parser.add_argument("--no-write", action="store_true", help="only run the checks")
     args = parser.parse_args(argv)
@@ -119,13 +129,17 @@ def main(argv: list[str] | None = None) -> int:
             encoding="utf-8",
         )
     if args.windows_version_file:
-        args.windows_version_file.write_text(windows_version_file(version, args.build), encoding="utf-8")
+        args.windows_version_file.write_text(
+            windows_version_file(version, args.build), encoding="utf-8"
+        )
     if args.release_notes:
         args.release_notes.write_text(release_notes(version), encoding="utf-8")
     if args.github_output and os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
             out.write(f"version={version}\nbuild={args.build}\n")
-    print(f"Pickframe {version} build {args.build} ({commit[:7] or 'no commit'}, {date}, {args.channel})")
+    print(
+        f"Pickframe {version} build {args.build} ({commit[:7] or 'no commit'}, {date}, {args.channel})"
+    )
     return 0
 
 

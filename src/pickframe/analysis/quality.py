@@ -50,9 +50,9 @@ def laplacian_energy(gray: np.ndarray, tile: int = _TILE, top: float = _TOP_FRAC
 
     ``gray`` is uint8 or float in 0..255; the result uses 0..1 intensities.
     """
-    g = gray.astype(np.float32) * (1.0 / 255.0)
-    g = cv2.GaussianBlur(g, (0, 0), 0.7)  # damp sensor noise and JPEG blocking
-    lap = cv2.Laplacian(g, cv2.CV_32F, ksize=3)
+    scaled = gray.astype(np.float32) * (1.0 / 255.0)
+    smooth = cv2.GaussianBlur(scaled, (0, 0), 0.7)  # damp sensor noise and JPEG blocking
+    lap = cv2.Laplacian(smooth, cv2.CV_32F, ksize=3)
     h, w = lap.shape
     tile = max(8, min(tile, h, w))
     rows, cols = h // tile, w // tile

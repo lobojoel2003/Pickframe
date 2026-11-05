@@ -66,7 +66,9 @@ def crop(img: np.ndarray, dx: float, dy: float, zoom: float = 1.0) -> np.ndarray
     x = int((w - cw) / 2 + dx * w)
     y = int((h - ch) / 2 + dy * h)
     x, y = max(0, min(w - cw, x)), max(0, min(h - ch, y))
-    return cv2.resize(img[y : y + ch, x : x + cw], (int(w * 0.9), int(h * 0.9)), interpolation=cv2.INTER_CUBIC)
+    return cv2.resize(
+        img[y : y + ch, x : x + cw], (int(w * 0.9), int(h * 0.9)), interpolation=cv2.INTER_CUBIC
+    )
 
 
 def shake(img: np.ndarray, length: int, angle: float) -> np.ndarray:
@@ -94,8 +96,8 @@ def close_eyes(img: np.ndarray) -> np.ndarray:
     map_x, map_y = np.meshgrid(np.arange(w, dtype=np.float32), np.arange(h, dtype=np.float32))
     for upper_idx, lower_idx in _LIDS:
         upper, lower = pts[upper_idx], pts[lower_idx]
-        x0 = int(math.floor(min(upper[:, 0].min(), lower[:, 0].min())))
-        x1 = int(math.ceil(max(upper[:, 0].max(), lower[:, 0].max())))
+        x0 = math.floor(min(upper[:, 0].min(), lower[:, 0].min()))
+        x1 = math.ceil(max(upper[:, 0].max(), lower[:, 0].max()))
         eye_width = x1 - x0
         ou, ol = np.argsort(upper[:, 0]), np.argsort(lower[:, 0])
         for x in range(max(0, x0), min(w, x1 + 1)):
@@ -104,7 +106,7 @@ def close_eyes(img: np.ndarray) -> np.ndarray:
             if bottom <= top + 0.5:
                 continue
             brow = top - 0.45 * eye_width
-            for y in range(max(0, int(brow)), min(h, int(math.ceil(bottom)) + 1)):
+            for y in range(max(0, int(brow)), min(h, math.ceil(bottom) + 1)):
                 if y >= brow:
                     map_y[y, x] = brow + (y - brow) * ((top - brow) / (bottom - brow))
     return cv2.remap(img, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
@@ -122,9 +124,13 @@ def save(img: np.ndarray, path: Path, when: datetime) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("out", type=Path, help="output folder")
-    parser.add_argument("--cache", type=Path, default=None, help="where to keep the downloaded originals")
+    parser.add_argument(
+        "--cache", type=Path, default=None, help="where to keep the downloaded originals"
+    )
     args = parser.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
     cache = args.cache or args.out / ".sources"
@@ -145,7 +151,9 @@ def main(argv: list[str] | None = None) -> int:
 
     a = [crop(astronaut, dx, dy, z) for dx, dy, z in ((0.0, 0.0, 1.0), (0.01, 0.0, 1.03), (0.0, 0.01, 1.0),
                                                        (-0.01, 0.0, 1.02), (0.012, -0.005, 1.0))]  # fmt: skip
-    burst([a[1], a[0], close_eyes(a[2]), shake(a[3], 15, 8), cv2.GaussianBlur(a[4], (0, 0), 1.6)], t)
+    burst(
+        [a[1], a[0], close_eyes(a[2]), shake(a[3], 15, 8), cv2.GaussianBlur(a[4], (0, 0), 1.6)], t
+    )
     c = [crop(cat, dx, 0.0, z) for dx, z in ((0.0, 1.0), (0.02, 1.04), (-0.015, 1.0))]
     burst([c[0], c[1], cv2.GaussianBlur(c[2], (0, 0), 3.5)], t + timedelta(minutes=3))
     k = crop(coffee, 0.0, 0.0)

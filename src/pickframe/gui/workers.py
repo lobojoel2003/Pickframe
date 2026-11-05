@@ -38,7 +38,10 @@ class AnalysisJob(QObject):
         analyzer = Analyzer(self.settings)
         try:
             result = analyzer.run(
-                self.paths, recursive=self.recursive, progress=self.progress.emit, cancel=self.cancel
+                self.paths,
+                recursive=self.recursive,
+                progress=self.progress.emit,
+                cancel=self.cancel,
             )
         except Cancelled:
             self.failed.emit("Analysis cancelled.")
@@ -62,7 +65,9 @@ class WriteJob(QObject):
 
     def run(self) -> None:
         try:
-            report = write_result(self.result, embed_jpeg=self.embed_jpeg, progress=self.progress.emit)
+            report = write_result(
+                self.result, embed_jpeg=self.embed_jpeg, progress=self.progress.emit
+            )
         except Exception as exc:
             self.failed.emit(f"Writing XMP failed: {exc}")
         else:
@@ -82,7 +87,9 @@ class DownloadJob(QObject):
     def run(self) -> None:
         try:
             path = models.download(
-                self.name, lambda done, total: self.progress.emit(done, total or 0), cancel=self.cancel
+                self.name,
+                lambda done, total: self.progress.emit(done, total or 0),
+                cancel=self.cancel,
             )
         except Exception as exc:
             self.failed.emit(str(exc))

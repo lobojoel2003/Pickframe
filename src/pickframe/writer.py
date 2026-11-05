@@ -32,7 +32,11 @@ def plan(result: CullResult) -> dict[int, XmpUpdate]:
         decision = result.decisions[shot.id]
         rating = result.rating(shot.id)
         if shot.id in result.overrides:
-            flag = "reject" if rating == -1 else ("pick" if decision.status == PICK and rating else "none")
+            flag = (
+                "reject"
+                if rating == -1
+                else ("pick" if decision.status == PICK and rating else "none")
+            )
         elif decision.status == PICK:
             flag = "pick"
         elif decision.status == REJECT and settings.reject_style != RejectStyle.NONE:
@@ -67,7 +71,9 @@ def write_result(
     for index, shot in enumerate(result.shots, start=1):
         update = updates[shot.id]
         for image in shot.files:
-            targets: list[tuple[str, Path]] = [("sidecar", p) for p in sidecar_paths(image, settings.sidecar_style)]
+            targets: list[tuple[str, Path]] = [
+                ("sidecar", p) for p in sidecar_paths(image, settings.sidecar_style)
+            ]
             if embed_jpeg and is_jpeg(image):
                 targets.append(("jpeg", image))
             for kind, target in targets:

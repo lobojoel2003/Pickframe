@@ -10,11 +10,14 @@
 
 from __future__ import annotations
 
+import contextlib
+import importlib
 import mmap
 import threading
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
+from types import ModuleType
 
 import numpy as np
 from PIL import Image, ImageFile, ImageOps
@@ -58,15 +61,13 @@ def heif_available() -> bool:
     with _heif_lock:
         if _heif_state is None:
             try:
-                from pillow_heif import register_heif_opener
+                import pillow_heif
 
-                register_heif_opener()
-                try:  # AVIF support lives in a separate registration in newer releases
-                    from pillow_heif import register_avif_opener
-
-                    register_avif_opener()
-                except ImportError:
-                    pass
+                pillow_heif.register_heif_opener()
+                # Older releases register AVIF separately; newer ones leave AVIF to Pillow.
+                register_avif = getattr(pillow_heif, "register_avif_opener", None)
+                if register_avif is not None:
+                    register_avif()
                 _heif_state = True
             except ImportError:
                 _heif_state = False
@@ -83,7 +84,7 @@ def _shrink(im: Image.Image, max_side: int) -> Image.Image:
 def _to_rgb_array(im: Image.Image) -> np.ndarray:
     if im.mode in ("I;16", "I;16B", "I;16L", "I"):
         arr = np.asarray(im, dtype=np.float32)
-        top = float(arr.max()) or 1.0
+        top = float(np.max(arr)) or 1.0
         arr = (arr / top * 255.0).clip(0, 255).astype(np.uint8)
         return np.ascontiguousarray(np.repeat(arr[..., None], 3, axis=2))
     if im.mode != "RGB":
@@ -96,16 +97,16 @@ def _to_rgb_array(im: Image.Image) -> np.ndarray:
     return np.ascontiguousarray(np.asarray(im, dtype=np.uint8))
 
 
-def _open_pillow(im: Image.Image, max_side: int, info: exif_mod.ExifInfo, source: str) -> LoadedImage:
+def _open_pillow(
+    im: Image.Image, max_side: int, info: exif_mod.ExifInfo, source: str
+) -> LoadedImage:
     width, height = im.size
     if info.orientation in (5, 6, 7, 8):
         width, height = height, width
     if im.format == "JPEG":
         im.draft("RGB", (max_side, max_side))
-    try:
+    with contextlib.suppress(Exception):  # broken EXIF must never stop analysis
         im = ImageOps.exif_transpose(im) or im
-    except Exception:  # broken EXIF must never stop analysis
-        pass
     im = _shrink(im, max_side)
     return LoadedImage(rgb=_to_rgb_array(im), width=width, height=height, exif=info, source=source)
 
@@ -186,16 +187,20 @@ def largest_embedded_jpeg(data: bytes | mmap.mmap) -> bytes | None:
     return bytes(data[start : _jpeg_end(data, start)])
 
 
+def _optional_module(name: str) -> ModuleType | None:
+    try:
+        return importlib.import_module(name)
+    except ImportError:
+        return None
+
+
 def _load_raw(path: Path, max_side: int) -> LoadedImage:
     info = exif_mod.read_raw_head(path) or exif_mod.ExifInfo()
     preview: Image.Image | None = None
     orientation = info.orientation
     use_preview_exif = False
     source = "raw-preview"
-    try:
-        import rawpy
-    except ImportError:
-        rawpy = None
+    rawpy = _optional_module("rawpy")
     if rawpy is not None:
         try:
             with rawpy.imread(str(path)) as raw:
@@ -243,7 +248,9 @@ def _load_raw(path: Path, max_side: int) -> LoadedImage:
         width, height = height, width
     preview = _shrink(preview, max_side)
     info.orientation = 1
-    return LoadedImage(rgb=_to_rgb_array(preview), width=width, height=height, exif=info, source=source)
+    return LoadedImage(
+        rgb=_to_rgb_array(preview), width=width, height=height, exif=info, source=source
+    )
 
 
 def load_image(path: Path, max_side: int = 1600) -> LoadedImage:

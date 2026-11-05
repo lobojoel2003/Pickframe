@@ -49,13 +49,15 @@ class ClassicEmbedder:
         small = cv2.resize(rgb, (64, 64), interpolation=cv2.INTER_AREA)
         lab = cv2.cvtColor(small, cv2.COLOR_RGB2LAB).astype(np.float32)
 
-        thumb = cv2.GaussianBlur(lab, (0, 0), 2.0)
-        thumb = cv2.resize(thumb, (12, 12), interpolation=cv2.INTER_AREA)
+        blurred = cv2.GaussianBlur(lab, (0, 0), 2.0)
+        thumb = np.asarray(cv2.resize(blurred, (12, 12), interpolation=cv2.INTER_AREA), np.float32)
         thumb[..., 0] -= thumb[..., 0].mean()  # brightness-invariant structure
         thumb[..., 1:] -= 128.0
         thumb_vec = _unit(thumb.ravel() * np.repeat([[1.0, 0.5, 0.5]], 144, axis=0).ravel())
 
-        gray = cv2.resize(cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY), (32, 32), interpolation=cv2.INTER_AREA)
+        gray = cv2.resize(
+            cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY), (32, 32), interpolation=cv2.INTER_AREA
+        )
         coeffs = cv2.dct(gray.astype(np.float32))[:8, :8].ravel()[1:]
         dct_vec = _unit(coeffs)
 
@@ -83,7 +85,9 @@ class ClipEmbedder:
     def __init__(self, threads: int = 0):
         path = models.remote_path("clip")
         if not path.is_file():
-            raise models.ModelError("CLIP model not installed; run 'pickframe models download clip'")
+            raise models.ModelError(
+                "CLIP model not installed; run 'pickframe models download clip'"
+            )
         self._session = models.session(path, threads)
         self._input = self._session.get_inputs()[0].name
         outputs = self._session.get_outputs()
@@ -98,7 +102,8 @@ class ClipEmbedder:
         h, w = rgb.shape[:2]
         scale = self._SIZE / min(h, w)
         resized = cv2.resize(
-            rgb, (max(self._SIZE, round(w * scale)), max(self._SIZE, round(h * scale))),
+            rgb,
+            (max(self._SIZE, round(w * scale)), max(self._SIZE, round(h * scale))),
             interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_CUBIC,
         )
         rh, rw = resized.shape[:2]

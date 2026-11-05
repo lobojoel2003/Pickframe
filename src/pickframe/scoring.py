@@ -172,7 +172,9 @@ def decide(
         ranked = sorted(scored, key=lambda d: (-d.score, d.shot_id))
         for rank, d in enumerate(ranked, start=1):
             d.rank = rank
-        picks = [d for d in ranked if not HARD_FLAGS.intersection(d.flags)][: settings.picks_per_group]
+        picks = [d for d in ranked if not HARD_FLAGS.intersection(d.flags)][
+            : settings.picks_per_group
+        ]
         best_score = picks[0].score if picks else 0.0
         for d in scored:
             if HARD_FLAGS.intersection(d.flags):

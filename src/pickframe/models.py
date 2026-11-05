@@ -69,7 +69,11 @@ def bundled(filename: str) -> Path:
 
 def models_dir() -> Path:
     override = os.environ.get("PICKFRAME_MODELS_DIR")
-    base = Path(override).expanduser() if override else Path(user_data_dir("pickframe", False)) / "models"
+    base = (
+        Path(override).expanduser()
+        if override
+        else Path(user_data_dir("pickframe", False)) / "models"
+    )
     return base
 
 
@@ -124,7 +128,7 @@ def download(
             with urllib.request.urlopen(request, timeout=60, context=_ssl_context()) as response:
                 total_header = response.headers.get("Content-Length")
                 total = int(total_header) if total_header and total_header.isdigit() else None
-                expected = model.sha256 or _linked_sha256(response.headers)
+                expected = model.sha256
                 done = 0
                 with partial.open("wb") as out:
                     while True:
@@ -153,15 +157,6 @@ def download(
         return target
 
 
-def _linked_sha256(headers) -> str | None:
-    """Hugging Face reports the LFS SHA-256 of a file in ``X-Linked-Etag``."""
-    value = headers.get("X-Linked-Etag") or headers.get("ETag") or ""
-    value = value.strip().strip('"').removeprefix("W/").strip('"')
-    if len(value) == 64 and all(c in "0123456789abcdef" for c in value.lower()):
-        return value.lower()
-    return None
-
-
 def remove(name: str) -> bool:
     path = remote_path(name)
     if path.is_file():
@@ -180,7 +175,11 @@ def onnx_providers() -> tuple[str, ...]:
     if wanted:
         chosen = tuple(p for p in wanted.split(",") if p in available)
         if chosen:
-            return (*chosen, "CPUExecutionProvider") if "CPUExecutionProvider" not in chosen else chosen
+            return (
+                (*chosen, "CPUExecutionProvider")
+                if "CPUExecutionProvider" not in chosen
+                else chosen
+            )
     return ("CPUExecutionProvider",)
 
 

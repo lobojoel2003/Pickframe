@@ -48,7 +48,9 @@ SMILE_LEFT, SMILE_RIGHT = 44, 45
 
 # Eye outlines in the 478-point mesh (subject's right eye, then left eye).
 _RIGHT_EYE = np.array([33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246])
-_LEFT_EYE = np.array([362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398])
+_LEFT_EYE = np.array(
+    [362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398]
+)
 _NOSE_TIP, _CHEEK_RIGHT, _CHEEK_LEFT = 1, 234, 454
 
 _MESH_SIZE = 256
@@ -123,7 +125,7 @@ class Face:
     def from_dict(cls, data: dict) -> Face:
         eyes = data.get("eyes") or [[0, 0], [0, 0]]
         return cls(
-            box=tuple(data["box"]),  # type: ignore[arg-type]
+            box=tuple(data["box"]),
             confidence=float(data["confidence"]),
             presence=float(data["presence"]),
             blink=(float(data["blink"][0]), float(data["blink"][1])),
@@ -171,12 +173,16 @@ class FaceAnalyzer:
         scale = min(1.0, self.detect_size / max(h, w))
         image = rgb
         if scale < 1.0:
-            image = cv2.resize(rgb, (round(w * scale), round(h * scale)), interpolation=cv2.INTER_AREA)
+            image = cv2.resize(
+                rgb, (round(w * scale), round(h * scale)), interpolation=cv2.INTER_AREA
+            )
         ih, iw = image.shape[:2]
         ph, pw = -(-ih // 32) * 32, -(-iw // 32) * 32
         blob = np.zeros((1, 3, ph, pw), np.float32)
         blob[0, :, :ih, :iw] = image[..., ::-1].transpose(2, 0, 1)  # YuNet expects BGR 0..255
-        out = dict(zip(self._detector_outputs, self._detector.run(None, {"input": blob})))
+        out = dict(
+            zip(self._detector_outputs, self._detector.run(None, {"input": blob}), strict=True)
+        )
 
         boxes, scores, keypoints = [], [], []
         for stride in (8, 16, 32):
@@ -197,17 +203,21 @@ class FaceAnalyzer:
             boxes.append(np.stack([cx - bw / 2, cy - bh / 2, bw, bh], axis=1))
             scores.append(score[idx])
             keypoints.append(
-                np.stack([(kps[..., 0] + col[:, None]) * stride, (kps[..., 1] + row[:, None]) * stride], -1)
+                np.stack(
+                    [(kps[..., 0] + col[:, None]) * stride, (kps[..., 1] + row[:, None]) * stride],
+                    -1,
+                )
             )
         if not boxes:
             return []
         all_boxes = np.concatenate(boxes)
         all_scores = np.concatenate(scores)
         all_kps = np.concatenate(keypoints)
-        keep = cv2.dnn.NMSBoxes(all_boxes.tolist(), all_scores.tolist(), self.min_confidence, 0.3)
-        keep = np.asarray(keep, dtype=np.int64).reshape(-1)
+        kept = cv2.dnn.NMSBoxes(all_boxes.tolist(), all_scores.tolist(), self.min_confidence, 0.3)
+        indices = np.asarray(kept, dtype=np.int64).reshape(-1)
         detections = [
-            _Detection(all_boxes[i] / scale, float(all_scores[i]), all_kps[i] / scale) for i in keep
+            _Detection(all_boxes[i] / scale, float(all_scores[i]), all_kps[i] / scale)
+            for i in indices
         ]
         detections.sort(key=lambda d: -d.box[2] * d.box[3])
         return detections
@@ -240,7 +250,9 @@ class FaceAnalyzer:
         if band.shape[1] > _EYE_BAND_WIDTH:
             factor = _EYE_BAND_WIDTH / band.shape[1]
             band = cv2.resize(
-                band, (_EYE_BAND_WIDTH, max(6, round(band.shape[0] * factor))), interpolation=cv2.INTER_AREA
+                band,
+                (_EYE_BAND_WIDTH, max(6, round(band.shape[0] * factor))),
+                interpolation=cv2.INTER_AREA,
             )
         energy = laplacian_energy(band, tile=16, top=0.25)
         if energy <= 0:
@@ -255,9 +267,15 @@ class FaceAnalyzer:
         for det in self.detect(rgb)[: self.max_faces]:
             matrix = self._align(det)
             crop = cv2.warpAffine(
-                rgb, matrix, (_MESH_SIZE, _MESH_SIZE), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE
+                rgb,
+                matrix,
+                (_MESH_SIZE, _MESH_SIZE),
+                flags=cv2.INTER_LINEAR,
+                borderMode=cv2.BORDER_REPLICATE,
             )
-            raw, presence_logit, _ = self._mesh.run(None, {"image": (crop.astype(np.float32) / 255.0)[None]})
+            raw, presence_logit, _ = self._mesh.run(
+                None, {"image": (crop.astype(np.float32) / 255.0)[None]}
+            )
             if 1.0 / (1.0 + math.exp(-float(np.ravel(presence_logit)[0]))) < self.min_presence:
                 continue
             inverse = cv2.invertAffineTransform(matrix)
@@ -276,7 +294,11 @@ class FaceAnalyzer:
                 continue
             matrix = self._align(det)
             crop = cv2.warpAffine(
-                rgb, matrix, (_MESH_SIZE, _MESH_SIZE), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE
+                rgb,
+                matrix,
+                (_MESH_SIZE, _MESH_SIZE),
+                flags=cv2.INTER_LINEAR,
+                borderMode=cv2.BORDER_REPLICATE,
             )
             tensor = (crop.astype(np.float32) * (1.0 / 255.0))[None]
             raw_points, presence_logit, _ = self._mesh.run(None, {"image": tensor})
@@ -299,7 +321,10 @@ class FaceAnalyzer:
             for corner_a, corner_b, upper, lower in _EAR_PAIRS:
                 width = float(np.linalg.norm(crop_points[corner_a] - crop_points[corner_b]))
                 gap = np.mean(
-                    [np.linalg.norm(crop_points[u] - crop_points[lo]) for u, lo in zip(upper, lower)]
+                    [
+                        np.linalg.norm(crop_points[u] - crop_points[lo])
+                        for u, lo in zip(upper, lower, strict=True)
+                    ]
                 )
                 ratios.append(float(gap / max(width, 1e-3)))
 
@@ -328,4 +353,3 @@ class FaceAnalyzer:
                 )
             )
         return faces
-

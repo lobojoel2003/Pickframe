@@ -23,6 +23,7 @@ XMP packet in the JPEG itself (opt-in).
 
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import tempfile
@@ -134,10 +135,8 @@ def _register_namespaces(text: str) -> None:
         for _event, (prefix, uri) in ET.iterparse(StringIO(text), events=("start-ns",)):
             if uri in _PREFERRED_PREFIXES or not prefix:
                 continue
-            try:
+            with contextlib.suppress(ValueError):  # reserved "nsN" prefixes
                 ET.register_namespace(prefix, uri)
-            except ValueError:  # reserved "nsN" prefixes
-                pass
     except ET.ParseError:
         pass
 
@@ -240,7 +239,9 @@ def apply_update(root: ET.Element, update: XmpUpdate, created: bool) -> None:
             set_property(root, PF_CREATED, "True")
 
     if update.rating is None:
-        if not first_time and _int(get_property(root, RATING)) == _int(get_property(root, PF_RATING)):
+        if not first_time and _int(get_property(root, RATING)) == _int(
+            get_property(root, PF_RATING)
+        ):
             previous = get_property(root, PF_PREVIOUS)
             set_property(root, RATING, previous or None)
         set_property(root, PF_RATING, "")
@@ -277,7 +278,16 @@ def apply_update(root: ET.Element, update: XmpUpdate, created: bool) -> None:
 
 
 _PICKFRAME_PROPS = (
-    PF_RATING, PF_PREVIOUS, PF_LABEL, PF_FLAG, PF_CREATED, PF_SCORE, PF_GROUP, PF_STATUS, PF_NOTES, PF_VERSION,
+    PF_RATING,
+    PF_PREVIOUS,
+    PF_LABEL,
+    PF_FLAG,
+    PF_CREATED,
+    PF_SCORE,
+    PF_GROUP,
+    PF_STATUS,
+    PF_NOTES,
+    PF_VERSION,
 )
 
 
@@ -316,16 +326,12 @@ def _atomic_write(path: Path, data: bytes) -> None:
         with os.fdopen(fd, "wb") as fh:
             fh.write(data)
         if path.exists():
-            try:
+            with contextlib.suppress(OSError):
                 os.chmod(tmp, path.stat().st_mode & 0o7777)
-            except OSError:
-                pass
         os.replace(tmp, path)
     except BaseException:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmp)
-        except OSError:
-            pass
         raise
 
 
@@ -340,7 +346,7 @@ def read_sidecar(path: Path) -> ET.Element | None:
 
 def read_rating(image: Path, style: SidecarStyle = SidecarStyle.AUTO) -> int | None:
     """Current rating of ``image`` from its sidecar(s) or embedded XMP."""
-    for sidecar in sidecar_paths(image, style) + [image.with_suffix(".xmp")]:
+    for sidecar in [*sidecar_paths(image, style), image.with_suffix(".xmp")]:
         try:
             root = read_sidecar(sidecar)
         except (OSError, XmpError):
@@ -452,11 +458,7 @@ def read_jpeg_xmp(path: Path) -> str | None:
 def _packet(xml_text: str, padding: bool = True) -> bytes:
     body = xml_text.split("?>", 1)[1].strip() if xml_text.startswith("<?xml") else xml_text.strip()
     pad = "\n".join([" " * 99] * 20) + "\n" if padding else ""  # room for in-place edits
-    packet = (
-        '<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>\n'
-        f"{body}\n{pad}"
-        '<?xpacket end="w"?>'
-    )
+    packet = f'<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>\n{body}\n{pad}<?xpacket end="w"?>'
     return packet.encode("utf-8")
 
 
@@ -467,7 +469,11 @@ def _embedded(data: bytes) -> tuple[tuple[int, int, str] | None, int]:
     for marker, start, end in _jpeg_segments(data):
         payload = data[start + 4 : end]
         if marker == 0xE1 and payload.startswith(JPEG_XMP_HEADER):
-            existing = (start, end, payload[len(JPEG_XMP_HEADER) :].decode("utf-8", errors="replace"))
+            existing = (
+                start,
+                end,
+                payload[len(JPEG_XMP_HEADER) :].decode("utf-8", errors="replace"),
+            )
             break
         if marker in (0xE0, 0xE1):
             insert_at = end  # after JFIF / Exif, as the XMP specification recommends
@@ -493,7 +499,9 @@ def _parse_packet(text: str) -> ET.Element:
     return parse(re.sub(r"<\?xpacket[^>]*\?>", "", text).strip())
 
 
-def update_jpeg(path: Path, update: XmpUpdate, overwrite_manual: bool = False, dry_run: bool = False) -> str:
+def update_jpeg(
+    path: Path, update: XmpUpdate, overwrite_manual: bool = False, dry_run: bool = False
+) -> str:
     """Merge ``update`` into the XMP packet embedded in a JPEG file."""
     data = path.read_bytes()
     existing, insert_at = _embedded(data)

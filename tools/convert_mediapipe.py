@@ -214,12 +214,16 @@ class Converter:
         k = [w.shape[2], w.shape[3]]
         s = [o.StrideH(), o.StrideW()]
         d = [o.DilationHFactor(), o.DilationWFactor()]
-        pads = self.same_pads(in_shape[1:3], k, s, d) if o.Padding() == Padding.SAME else [0, 0, 0, 0]
+        pads = (
+            self.same_pads(in_shape[1:3], k, s, d) if o.Padding() == Padding.SAME else [0, 0, 0, 0]
+        )
         conv_in = [self.nchw(self.name(ins[0])), self.weight(w)]
         if len(ins) > 2 and ins[2] >= 0:
             conv_in.append(self.weight(self.consts[ins[2]]))
         y = self.tmp("conv")
-        self.emit("Conv", conv_in, [y], kernel_shape=k, strides=s, dilations=d, pads=pads, group=group)
+        self.emit(
+            "Conv", conv_in, [y], kernel_shape=k, strides=s, dilations=d, pads=pads, group=group
+        )
         a = self.tmp("act")
         self.activation(y, a, o.FusedActivationFunction())
         self.nhwc(a, self.name(outs[0]))
@@ -237,9 +241,15 @@ class Converter:
         k = [o.FilterHeight(), o.FilterWidth()]
         s = [o.StrideH(), o.StrideW()]
         in_shape = self.shape(ins[0])
-        pads = self.same_pads(in_shape[1:3], k, s, [1, 1]) if o.Padding() == Padding.SAME else [0, 0, 0, 0]
+        pads = (
+            self.same_pads(in_shape[1:3], k, s, [1, 1])
+            if o.Padding() == Padding.SAME
+            else [0, 0, 0, 0]
+        )
         y = self.tmp("pool")
-        self.emit("MaxPool", [self.nchw(self.name(ins[0]))], [y], kernel_shape=k, strides=s, pads=pads)
+        self.emit(
+            "MaxPool", [self.nchw(self.name(ins[0]))], [y], kernel_shape=k, strides=s, pads=pads
+        )
         a = self.tmp("act")
         self.activation(y, a, o.FusedActivationFunction())
         self.nhwc(a, self.name(outs[0]))
@@ -363,7 +373,9 @@ class Converter:
             [y],
         )
         if shrink:
-            self.emit("Squeeze", [y, self.const(np.array(shrink, np.int64), "sq")], [self.name(outs[0])])
+            self.emit(
+                "Squeeze", [y, self.const(np.array(shrink, np.int64), "sq")], [self.name(outs[0])]
+            )
 
 
 def convert(tflite_bytes: bytes, inputs: list[str], outputs: list[str]) -> onnx.ModelProto:
@@ -390,7 +402,9 @@ def verify(tflite_bytes: bytes, onnx_model: onnx.ModelProto, feeds: list[np.ndar
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("task", type=Path, help="face_landmarker.task bundle")
     ap.add_argument("out_dir", type=Path)
     ap.add_argument("--no-verify", action="store_true")
@@ -401,10 +415,20 @@ def main(argv: list[str] | None = None) -> int:
         blendshapes = z.read("face_blendshapes.tflite")
 
     jobs = [
-        ("face_landmarks.onnx", landmarks, ["image"], ["landmarks", "presence", "aux"],
-         lambda rng: rng.random((1, 256, 256, 3), dtype=np.float32)),
-        ("face_blendshapes.onnx", blendshapes, ["points"], ["blendshapes"],
-         lambda rng: (rng.random((1, 146, 2), dtype=np.float32) * 256).astype(np.float32)),
+        (
+            "face_landmarks.onnx",
+            landmarks,
+            ["image"],
+            ["landmarks", "presence", "aux"],
+            lambda rng: rng.random((1, 256, 256, 3), dtype=np.float32),
+        ),
+        (
+            "face_blendshapes.onnx",
+            blendshapes,
+            ["points"],
+            ["blendshapes"],
+            lambda rng: (rng.random((1, 146, 2), dtype=np.float32) * 256).astype(np.float32),
+        ),
     ]
     args.out_dir.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(0)

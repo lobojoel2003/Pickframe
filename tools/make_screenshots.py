@@ -26,7 +26,8 @@ ICON = ROOT / "packaging" / "icons" / "pickframe.svg"
 
 def load_tool(name: str):
     spec = importlib.util.spec_from_file_location(name, ROOT / "tools" / f"{name}.py")
-    assert spec and spec.loader
+    assert spec is not None
+    assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -37,7 +38,9 @@ def save_png(png: bytes, path: Path, width: int | None = None) -> None:
 
     image = Image.open(BytesIO(png)).convert("RGB")
     if width and image.width > width:
-        image = image.resize((width, round(image.height * width / image.width)), Image.Resampling.LANCZOS)
+        image = image.resize(
+            (width, round(image.height * width / image.width)), Image.Resampling.LANCZOS
+        )
     image.save(path, optimize=True)
     print(f"wrote {path} ({image.width}x{image.height}, {path.stat().st_size // 1024} KB)")
 
@@ -105,14 +108,18 @@ def cli_svg(result, folder_name: str, path: Path) -> None:
 
     from pickframe.cli import _print_list, _print_summary
 
-    console = Console(record=True, width=96, force_terminal=True, color_system="truecolor", highlight=False)
+    console = Console(
+        record=True, width=96, force_terminal=True, color_system="truecolor", highlight=False
+    )
     console.print(f"[bold green]$[/] pickframe cull {folder_name} --list")
     console.print()
     _print_summary(result, console)
     console.print()
     _print_list(result, console)
     console.print()
-    console.print(f"Wrote XMP for [bold]{sum(len(s.files) for s in result.shots)}[/] file(s); 0 already up to date.")
+    console.print(
+        f"Wrote XMP for [bold]{sum(len(s.files) for s in result.shots)}[/] file(s); 0 already up to date."
+    )
     console.save_svg(str(path), title="pickframe")
     print(f"wrote {path}")
 

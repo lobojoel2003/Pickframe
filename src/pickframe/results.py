@@ -52,7 +52,9 @@ class Analysis:
             "error": self.error,
         }
         if with_embedding and self.embedding is not None:
-            data["embedding"] = base64.b64encode(self.embedding.astype(np.float32).tobytes()).decode()
+            data["embedding"] = base64.b64encode(
+                self.embedding.astype(np.float32).tobytes()
+            ).decode()
         return data
 
     @classmethod
@@ -128,7 +130,9 @@ class Decision:
     @property
     def summary(self) -> str:
         if not self.flags:
-            return "best of its group" if self.status == PICK and self.group_size > 1 else "looks good"
+            return (
+                "best of its group" if self.status == PICK and self.group_size > 1 else "looks good"
+            )
         return ", ".join(FLAG_TEXT.get(flag, flag) for flag in self.flags)
 
     def to_dict(self) -> dict:

@@ -72,7 +72,13 @@ class CullResult:
         self.decisions = decide(self.groups, self.analyses, self.settings)
 
     def counts(self) -> dict[str, int]:
-        out = {"shots": len(self.shots), "groups": len(self.groups), "pick": 0, "alternate": 0, "reject": 0}
+        out = {
+            "shots": len(self.shots),
+            "groups": len(self.groups),
+            "pick": 0,
+            "alternate": 0,
+            "reject": 0,
+        }
         for decision in self.decisions.values():
             out[decision.status] += 1
         return out
@@ -134,7 +140,11 @@ def _encode_override(overrides: dict[int, int | None], shot_id: int) -> int | st
 def _default_similarity(embedder_name: str) -> float:
     from .analysis.embed import ClassicEmbedder, ClipEmbedder
 
-    return ClipEmbedder.default_similarity if embedder_name == "clip" else ClassicEmbedder.default_similarity
+    return (
+        ClipEmbedder.default_similarity
+        if embedder_name == "clip"
+        else ClassicEmbedder.default_similarity
+    )
 
 
 def default_workers() -> int:
@@ -204,7 +214,11 @@ class Analyzer:
         analysis.contrast = contrast(rgb)
         exp = exposure(rgb)
         analysis.exposure = exp.score
-        analysis.brightness, analysis.highlights, analysis.shadows = exp.brightness, exp.highlights, exp.shadows
+        analysis.brightness, analysis.highlights, analysis.shadows = (
+            exp.brightness,
+            exp.highlights,
+            exp.shadows,
+        )
         try:
             analysis.faces = self.faces.analyze(rgb)
         except Exception as exc:
@@ -237,7 +251,9 @@ class Analyzer:
         if todo:
             # Load the models before starting threads so failures surface once.
             _ = self.faces, self.embedder
-            with ThreadPoolExecutor(max_workers=self.workers, thread_name_prefix="pickframe") as pool:
+            with ThreadPoolExecutor(
+                max_workers=self.workers, thread_name_prefix="pickframe"
+            ) as pool:
                 futures = {pool.submit(self.analyze_image, shot.primary): shot for shot in todo}
                 try:
                     for future in as_completed(futures):

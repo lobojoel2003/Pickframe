@@ -60,6 +60,17 @@ def parse_exif_datetime(value: object, subsec: object = None) -> float | None:
     return stamp
 
 
+def camera_name(make: str, model: str) -> str:
+    """``("NIKON CORPORATION", "NIKON D3S")`` -> ``"NIKON D3S"``; ``("Canon", "EOS R5")`` -> ``"Canon EOS R5"``."""
+    make, model = make.strip(), model.strip()
+    brand = make.split()[0].lower() if make else ""
+    if not model:
+        return make
+    if brand and brand in model.lower():
+        return model
+    return f"{make} {model}".strip()
+
+
 def _from_pillow_exif(exif: Image.Exif) -> ExifInfo:
     info = ExifInfo()
     try:
@@ -73,7 +84,7 @@ def _from_pillow_exif(exif: Image.Exif) -> ExifInfo:
     info.orientation = orientation if isinstance(orientation, int) and 1 <= orientation <= 8 else 1
     make = str(exif.get(_TAG_MAKE, "") or "").strip("\x00 ")
     model = str(exif.get(_TAG_MODEL, "") or "").strip("\x00 ")
-    info.camera = model if model.lower().startswith(make.lower()) else f"{make} {model}".strip()
+    info.camera = camera_name(make, model)
     return info
 
 
@@ -158,7 +169,7 @@ def _from_tiff(data: bytes, base: int = 0, exif_ifd_only: bool = False) -> ExifI
         info.orientation = orientation
     make = str(ifd0.get(_TAG_MAKE, "")).strip()
     model = str(ifd0.get(_TAG_MODEL, "")).strip()
-    info.camera = model if model.lower().startswith(make.lower()) else f"{make} {model}".strip()
+    info.camera = camera_name(make, model)
     return info
 
 

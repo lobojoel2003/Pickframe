@@ -82,7 +82,9 @@ class ShotModel(QAbstractListModel):
     def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: B008
         return 0 if parent.isValid() else len(self.ids)
 
-    def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
+    def data(
+        self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole
+    ):
         if not index.isValid() or self.result is None:
             return None
         shot_id = self.ids[index.row()]
@@ -157,7 +159,9 @@ class ShotDelegate(QStyledItemDelegate):
             painter.fillRect(image_rect, QColor(theme.BG))
         elif not pixmap.isNull():
             scaled = pixmap.scaled(
-                image_rect.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                image_rect.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
             )
             x = image_rect.left() + (image_rect.width() - scaled.width()) // 2
             y = image_rect.top() + (image_rect.height() - scaled.height()) // 2
@@ -173,7 +177,9 @@ class ShotDelegate(QStyledItemDelegate):
         painter.setFont(badge_font)
         label = decision.status.upper()
         metrics = painter.fontMetrics()
-        badge = QRect(image_rect.left() + 6, image_rect.top() + 6, metrics.horizontalAdvance(label) + 14, 18)
+        badge = QRect(
+            image_rect.left() + 6, image_rect.top() + 6, metrics.horizontalAdvance(label) + 14, 18
+        )
         bpath = QPainterPath()
         bpath.addRoundedRect(QRectF(badge), 9, 9)
         painter.fillPath(bpath, color)
@@ -197,8 +203,12 @@ class ShotDelegate(QStyledItemDelegate):
         painter.setFont(text_font)
         painter.setPen(QColor(theme.TEXT))
         name_rect = QRect(rect.left() + 10, image_rect.bottom() + 6, rect.width() - 20, 18)
-        name = painter.fontMetrics().elidedText(result.shots[shot_id].label(), Qt.TextElideMode.ElideMiddle, name_rect.width())
-        painter.drawText(name_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, name)
+        name = painter.fontMetrics().elidedText(
+            result.shots[shot_id].label(), Qt.TextElideMode.ElideMiddle, name_rect.width()
+        )
+        painter.drawText(
+            name_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, name
+        )
         small = QFont(text_font)
         small.setPointSizeF(max(7.0, text_font.pointSizeF() - 1.5))
         painter.setFont(small)
@@ -206,8 +216,12 @@ class ShotDelegate(QStyledItemDelegate):
         painter.setPen(QColor(theme.REJECT if hard else theme.MUTED))
         reason = f"{decision.score * 100:.0f} · {decision.summary}"
         reason_rect = QRect(name_rect.left(), name_rect.bottom() + 1, name_rect.width(), 16)
-        reason = painter.fontMetrics().elidedText(reason, Qt.TextElideMode.ElideRight, reason_rect.width())
-        painter.drawText(reason_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, reason)
+        reason = painter.fontMetrics().elidedText(
+            reason, Qt.TextElideMode.ElideRight, reason_rect.width()
+        )
+        painter.drawText(
+            reason_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, reason
+        )
         painter.restore()
 
 
@@ -235,7 +249,9 @@ class Preview(QWidget):
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "No photo selected")
             return
         scaled = self.pixmap.scaled(
-            self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+            self.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
         )
         x = (self.width() - scaled.width()) // 2
         y = (self.height() - scaled.height()) // 2
@@ -325,7 +341,9 @@ class DetailPanel(QWidget):
         layout.addWidget(self.meta)
         layout.addStretch(1)
 
-    def show_shot(self, result: CullResult | None, shot_id: int | None, pixmap: QPixmap | None) -> None:
+    def show_shot(
+        self, result: CullResult | None, shot_id: int | None, pixmap: QPixmap | None
+    ) -> None:
         if result is None or shot_id is None:
             self.preview.set_image(None)
             self.title.setText("")
@@ -463,7 +481,9 @@ class SettingsDialog(QDialog):
         oform.addRow(self.embed)
         oform.addRow(self.overwrite)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject_dialog)
         layout = QVBoxLayout(self)
@@ -478,7 +498,9 @@ class SettingsDialog(QDialog):
 
     def refresh_clip_state(self) -> None:
         installed = models.is_installed("clip")
-        self.clip_state.setText("CLIP model installed ✓" if installed else "CLIP model not installed")
+        self.clip_state.setText(
+            "CLIP model installed ✓" if installed else "CLIP model not installed"
+        )
         self.clip_button.setVisible(not installed)
 
     def download_progress(self, done: int, total: int) -> None:

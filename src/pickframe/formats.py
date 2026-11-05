@@ -5,9 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 #: Formats decoded directly with Pillow / OpenCV.
-RASTER_EXTENSIONS = frozenset(
-    {".jpg", ".jpeg", ".jpe", ".png", ".tif", ".tiff", ".webp", ".bmp"}
-)
+RASTER_EXTENSIONS = frozenset({".jpg", ".jpeg", ".jpe", ".png", ".tif", ".tiff", ".webp", ".bmp"})
 
 #: HEIF/HEIC/AVIF need the optional ``pillow-heif`` package.
 HEIF_EXTENSIONS = frozenset({".heic", ".heif", ".hif", ".avif"})

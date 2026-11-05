@@ -41,7 +41,9 @@ def write_csv(result: CullResult, path: Path) -> None:
                 d = result.decisions[shot_id]
                 a = result.analyses[shot_id]
                 when = (
-                    datetime.fromtimestamp(a.capture_time, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                    datetime.fromtimestamp(a.capture_time, tz=timezone.utc).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
                     if a.capture_time is not None
                     else ""
                 )
@@ -129,7 +131,9 @@ def _stars(rating: int | None) -> str:
     return "&#9733;" * rating
 
 
-def render_html(result: CullResult, thumb_size: int = 360, progress: ProgressFn | None = None) -> str:
+def render_html(
+    result: CullResult, thumb_size: int = 360, progress: ProgressFn | None = None
+) -> str:
     from .scoring import face_closed, prominent_faces
 
     counts = result.counts()
@@ -145,7 +149,10 @@ def render_html(result: CullResult, thumb_size: int = 360, progress: ProgressFn 
             faces_html = "".join(
                 '<span class="face{cls}" style="left:{x:.2f}%;top:{y:.2f}%;width:{w:.2f}%;height:{h:.2f}%"></span>'.format(
                     cls=" closed" if face_closed(f, result.settings) else "",
-                    x=f.box[0] * 100, y=f.box[1] * 100, w=f.box[2] * 100, h=f.box[3] * 100,
+                    x=f.box[0] * 100,
+                    y=f.box[1] * 100,
+                    w=f.box[2] * 100,
+                    h=f.box[3] * 100,
                 )
                 for f in prominent_faces(a.faces)
             )
@@ -155,7 +162,11 @@ def render_html(result: CullResult, thumb_size: int = 360, progress: ProgressFn 
                 else html.escape(FLAG_TEXT.get(flag, flag))
                 for flag in d.flags
             ) or html.escape(d.summary)
-            img = f'<span class="frame"><img loading="lazy" src="{uri}" alt="">{faces_html}</span>' if uri else ""
+            img = (
+                f'<span class="frame"><img loading="lazy" src="{uri}" alt="">{faces_html}</span>'
+                if uri
+                else ""
+            )
             cards.append(
                 f'<div class="card {d.status}" title="{html.escape(str(shot.primary))}">'
                 f'<div class="img">{img}<span class="badge">{d.status}</span>'
@@ -170,7 +181,9 @@ def render_html(result: CullResult, thumb_size: int = 360, progress: ProgressFn 
         first = result.shots[group[0]]
         title = f"Group {result.decisions[group[0]].group + 1} &middot; {len(group)} shot{'s' if len(group) != 1 else ''}"
         title += f" &middot; {html.escape(first.primary.parent.name)}"
-        parts.append(f'<section class="group"><h2>{title}</h2><div class="cards">{"".join(cards)}</div></section>')
+        parts.append(
+            f'<section class="group"><h2>{title}</h2><div class="cards">{"".join(cards)}</div></section>'
+        )
 
     stats = "".join(
         f'<span class="stat"><b>{counts[key]}</b> {label}</span>'
@@ -183,7 +196,7 @@ def render_html(result: CullResult, thumb_size: int = 360, progress: ProgressFn 
         '<meta name=viewport content="width=device-width,initial-scale=1">'
         f"<title>Pickframe report</title><style>{_CSS}</style></head><body>"
         f"<header><h1>Pick<span>frame</span> report</h1><div class=stats>{stats}</div>"
-        '<div class=filters><button class=on data-f=all>All</button><button data-f=pick>Picks</button>'
+        "<div class=filters><button class=on data-f=all>All</button><button data-f=pick>Picks</button>"
         "<button data-f=alternate>Alternates</button><button data-f=reject>Rejects</button></div></header>"
         f"<main>{''.join(parts)}</main>"
         f'<footer>Generated {generated} by <a href="https://github.com/lobojoel2003/Pickframe">Pickframe</a> '
@@ -192,7 +205,9 @@ def render_html(result: CullResult, thumb_size: int = 360, progress: ProgressFn 
     )
 
 
-def write_html(result: CullResult, path: Path, thumb_size: int = 360, progress: ProgressFn | None = None) -> None:
+def write_html(
+    result: CullResult, path: Path, thumb_size: int = 360, progress: ProgressFn | None = None
+) -> None:
     path.write_text(render_html(result, thumb_size, progress), encoding="utf-8")
 
 
