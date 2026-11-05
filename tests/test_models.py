@@ -141,9 +141,16 @@ def test_download_cancelled(local_clip):
 def test_url_override(monkeypatch, server: str):
     monkeypatch.setenv("PICKFRAME_CLIP_URL", server + "/model.onnx")
     monkeypatch.setitem(
-        models.REMOTE_MODELS, "clip", replace(models.CLIP, url="http://invalid.invalid/x")
+        models.REMOTE_MODELS,
+        "clip",
+        replace(models.CLIP, url="http://invalid.invalid/x", sha256=PAYLOAD_SHA),
     )
     assert models.download("clip").read_bytes() == PAYLOAD
+
+
+def test_clip_checksum_is_pinned():
+    assert models.CLIP.sha256 is not None
+    assert len(models.CLIP.sha256) == 64
 
 
 def test_session_and_providers(monkeypatch):
