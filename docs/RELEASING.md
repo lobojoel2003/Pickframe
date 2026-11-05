@@ -31,6 +31,10 @@ Source checkouts report `(dev)` instead of a build number.
    git push origin main vX.Y.Z
    ```
 
+   Or, without pushing a tag: push `main`, open **Actions → Release → Run
+   workflow**, keep `main` selected, enter `vX.Y.Z` as the tag and leave
+   **publish** ticked. The workflow builds that commit and creates the tag.
+
 4. The [Release workflow](../.github/workflows/release.yml) then:
    * verifies the version, changelog and tests,
    * builds the desktop app with PyInstaller on Windows, macOS and Linux and

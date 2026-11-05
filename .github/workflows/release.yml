@@ -1,7 +1,10 @@
 name: Release
 
-# Push a tag such as v1.2.3 (matching src/pickframe/__init__.py and a
-# "## [1.2.3]" section in CHANGELOG.md) to build and publish a release.
+# Two ways to release version 1.2.3 (it must match src/pickframe/__init__.py
+# and have a "## [1.2.3]" section in CHANGELOG.md):
+#   * push the tag v1.2.3, or
+#   * run this workflow from the Actions tab on main with tag "v1.2.3"; the
+#     selected commit is built and the tag is created when publishing.
 # The workflow run number becomes the build number of every artifact.
 
 on:
@@ -10,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag to build (e.g. v1.0.0). Leave empty to build the selected branch.
+        description: Release tag (e.g. v1.0.0). Created on the selected commit if it does not exist yet. Leave empty for a build-only run.
         required: false
         default: ""
       publish:
@@ -43,8 +46,6 @@ jobs:
       build: ${{ steps.version.outputs.build }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ env.TAG }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -68,8 +69,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ env.TAG }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -102,8 +101,6 @@ jobs:
       VERSION: ${{ needs.verify.outputs.version }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ env.TAG }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -178,8 +175,6 @@ jobs:
       VERSION: ${{ needs.verify.outputs.version }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ env.TAG }}
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
@@ -209,6 +204,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
           name: Pickframe ${{ env.VERSION }}
           body_path: notes.md
           files: artifacts/*
