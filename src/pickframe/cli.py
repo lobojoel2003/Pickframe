@@ -22,7 +22,7 @@ EPILOG = """examples:
   pickframe cull ~/Pictures/shoot -r --dry-run --report report.html
   pickframe cull . --sidecar lightroom --reject-as one-star
   pickframe reset ~/Pictures/wedding                undo everything Pickframe wrote
-  pickframe models download clip                    better grouping (88 MB, once)
+  pickframe models download clip                    better grouping (89 MB, once)
   pickframe gui ~/Pictures/wedding                  open the desktop app
 """
 

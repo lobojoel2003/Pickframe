@@ -163,7 +163,7 @@ flowchart LR
 | --- | --- |
 | Focus | Variance of the Laplacian in the sharpest 10% of tiles, so bokeh does not count against a photo. With faces, focus around the eyes weighs most. Inside a group, frames with far less fine detail than the sharpest frame (normalised for exposure) are marked soft or blurry. |
 | Faces | [YuNet](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet) finds faces; the [MediaPipe Face Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker) mesh confirms them and places 478 landmarks; its blendshape model scores blinks and smiles. Closed eyes combine eyelid geometry with the blink score, with a stricter threshold for small faces. |
-| Similarity | Built-in: blurred thumbnail + low-frequency DCT + colour histogram. Optional: [CLIP ViT-B/32](https://github.com/openai/CLIP) image embeddings (`pickframe models download clip`, 88 MB, once). |
+| Similarity | Built-in: blurred thumbnail + low-frequency DCT + colour histogram. Optional: [CLIP ViT-B/32](https://github.com/openai/CLIP) image embeddings (`pickframe models download clip`, 89 MB, once). |
 | Grouping | Photos in each folder are walked in capture order; a frame joins the current group when it resembles one of the last three frames and was taken within 60 seconds. |
 | Runtime | Everything runs on [ONNX Runtime](https://onnxruntime.ai) and OpenCV, on the CPU, with one thread per core. |
 

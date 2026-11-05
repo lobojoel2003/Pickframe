@@ -2,7 +2,7 @@
 
 The face models (about 3.6 MB) ship inside the package, so Pickframe works
 offline out of the box. The CLIP image encoder used for semantic grouping is
-larger (about 88 MB) and is downloaded once, on request, into the user data
+larger (about 89 MB) and is downloaded once, on request, into the user data
 folder.
 """
 
@@ -47,8 +47,8 @@ CLIP = RemoteModel(
     name="clip",
     filename="clip-vit-base-patch32-vision-quantized.onnx",
     url="https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/vision_model_quantized.onnx",
-    sha256=None,
-    approx_mb=88,
+    sha256="583fd1110a514667812fee7d684952aaf82a99b959760c8d7dca7e0ab9839299",
+    approx_mb=89,
     description="CLIP ViT-B/32 image encoder (OpenAI), 8-bit ONNX export by Xenova",
     license="MIT",
 )

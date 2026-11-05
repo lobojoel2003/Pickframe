@@ -436,7 +436,7 @@ class SettingsDialog(QDialog):
         self.clip_state = QLabel()
         self.clip_progress = QProgressBar()
         self.clip_progress.setVisible(False)
-        self.clip_button = QPushButton("Download CLIP model (88 MB)")
+        self.clip_button = QPushButton("Download CLIP model (89 MB)")
         self.clip_button.clicked.connect(self.download_requested.emit)
         clip_row = QHBoxLayout()
         clip_row.addWidget(self.clip_state, 1)

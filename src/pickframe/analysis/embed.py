@@ -5,7 +5,7 @@ cosine similarity):
 
 ``clip``
     The CLIP ViT-B/32 image encoder. Understands content ("same couple, same
-    pose") and is robust to recomposition and zoom. Optional ~88 MB download.
+    pose") and is robust to recomposition and zoom. Optional ~89 MB download.
 
 ``classic``
     Built in, no download, very fast: a blend of a blurred thumbnail, low
