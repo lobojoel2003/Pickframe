@@ -41,7 +41,9 @@ Source checkouts report `(dev)` instead of a build number.
      from the changelog.
 
 To rebuild an existing tag, run the workflow manually ("Run workflow") and
-enter the tag.
+enter the tag. To test the whole build on a branch without publishing
+anything, run it manually with an empty tag and **publish** unticked; the
+installers are then available as workflow artifacts.
 
 ## Publishing to PyPI (optional)
 
