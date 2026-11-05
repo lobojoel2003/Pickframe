@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.python-version
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# PyInstaller
+*.spec.bak
+packaging/pyinstaller/version_info.txt
+
+# Pickframe output in the repo (demo shoots, reports)
+demo-shoot/
+*.xmp
+pickframe-report.*
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.cache/

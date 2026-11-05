@@ -1,0 +1,126 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pickframe"
+dynamic = ["version"]
+description = "Free, local AI photo culling: groups near-duplicates, flags blur and closed eyes, scores faces and writes XMP star ratings for Lightroom, darktable and digiKam."
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE", "src/pickframe/models/NOTICE.md"]
+requires-python = ">=3.10"
+authors = [{ name = "Joel Stain Lobo", email = "lobojoel2003@gmail.com" }]
+keywords = [
+  "photography", "culling", "photo-culling", "xmp", "lightroom", "darktable",
+  "digikam", "onnx", "face-detection", "blur-detection", "duplicates",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Environment :: X11 Applications :: Qt",
+  "Environment :: MacOS X",
+  "Environment :: Win32 (MS Windows)",
+  "Intended Audience :: End Users/Desktop",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Multimedia :: Graphics",
+  "Topic :: Multimedia :: Graphics :: Viewers",
+  "Topic :: Scientific/Engineering :: Image Recognition",
+]
+dependencies = [
+  "numpy>=1.24",
+  "opencv-python-headless>=4.8",
+  "onnxruntime>=1.17",
+  "pillow>=10.0",
+  "certifi>=2023.7.22",
+  "platformdirs>=3.0",
+  "rich>=13.0",
+]
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.6"]
+raw = ["rawpy>=0.19"]
+heif = ["pillow-heif>=0.16"]
+all = ["pickframe[gui,raw,heif]"]
+dev = [
+  "pickframe[all]",
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "pytest-qt>=4.4",
+  "ruff>=0.6",
+  "mypy>=1.10",
+  "build>=1.2",
+  "twine>=5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/lobojoel2003/Pickframe"
+Documentation = "https://github.com/lobojoel2003/Pickframe#readme"
+Issues = "https://github.com/lobojoel2003/Pickframe/issues"
+Changelog = "https://github.com/lobojoel2003/Pickframe/blob/main/CHANGELOG.md"
+Releases = "https://github.com/lobojoel2003/Pickframe/releases"
+
+[project.scripts]
+pickframe = "pickframe.cli:main"
+
+[project.gui-scripts]
+pickframe-gui = "pickframe.gui:main"
+
+[tool.hatch.version]
+path = "src/pickframe/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pickframe"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+  "/tools",
+  "/packaging",
+  "/CHANGELOG.md",
+  "/README.md",
+  "/LICENSE",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+  "gui: tests that need PySide6 (skipped when it is not installed)",
+  "network: tests that download models (opt in with PICKFRAME_NETWORK_TESTS=1)",
+]
+filterwarnings = ["error::DeprecationWarning:pickframe.*"]
+
+[tool.coverage.run]
+source = ["pickframe"]
+omit = ["src/pickframe/gui/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests", "tools"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "C4", "PIE", "PT"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+"tools/*" = ["B", "SIM"]
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["pickframe"]
+mypy_path = "src"
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+ignore_missing_imports = true
+exclude = ["src/pickframe/gui/"]
