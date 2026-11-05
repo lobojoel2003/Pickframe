@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""Stamp build metadata into the package before building release artifacts.
+
+* Writes ``src/pickframe/_build.py`` (build number, commit, date, channel).
+* ``--check-tag v1.2.3`` fails unless the tag matches ``pickframe.__version__``
+  and CHANGELOG.md has a section for that version.
+* ``--windows-version-file PATH`` writes a PyInstaller version resource so the
+  Windows .exe shows "1.2.3.<build>" in its properties.
+* ``--github-output`` appends ``version=...`` and ``build=...`` to
+  ``$GITHUB_OUTPUT`` for later workflow steps.
+
+Usage (CI)::
+
+    python tools/stamp_build.py --build "$GITHUB_RUN_NUMBER" --commit "$GITHUB_SHA" \
+        --channel release --check-tag "$GITHUB_REF_NAME"
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+INIT = ROOT / "src" / "pickframe" / "__init__.py"
+BUILD = ROOT / "src" / "pickframe" / "_build.py"
+CHANGELOG = ROOT / "CHANGELOG.md"
+SEMVER = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:[-.]?((?:a|b|rc|alpha|beta)\.?\d+))?$")
+
+
+def package_version() -> str:
+    match = re.search(r'^__version__ = "([^"]+)"', INIT.read_text(encoding="utf-8"), re.M)
+    if not match:
+        raise SystemExit("could not find __version__ in src/pickframe/__init__.py")
+    return match.group(1)
+
+
+def git_commit() -> str:
+    try:
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return ""
+
+
+def check_tag(tag: str, version: str) -> None:
+    expected = f"v{version}"
+    if tag != expected:
+        raise SystemExit(f"tag {tag!r} does not match package version {version!r} (expected {expected!r})")
+    if not SEMVER.match(version):
+        raise SystemExit(f"version {version!r} is not semantic (MAJOR.MINOR.PATCH)")
+    text = CHANGELOG.read_text(encoding="utf-8") if CHANGELOG.exists() else ""
+    if not re.search(rf"^## \[{re.escape(version)}\]", text, re.M):
+        raise SystemExit(f"CHANGELOG.md has no '## [{version}]' section")
+
+
+def release_notes(version: str) -> str:
+    """The CHANGELOG section for ``version`` (without its heading)."""
+    text = CHANGELOG.read_text(encoding="utf-8")
+    match = re.search(rf"^## \[{re.escape(version)}\][^\n]*\n(.*?)(?=^## \[|\Z)", text, re.M | re.S)
+    if not match:
+        raise SystemExit(f"CHANGELOG.md has no '## [{version}]' section")
+    body = re.sub(r"^\[[^\]]+\]: \S+\s*$", "", match.group(1), flags=re.M)
+    return body.strip() + "\n"
+
+
+def windows_version_file(version: str, build: int) -> str:
+    match = SEMVER.match(version)
+    major, minor, patch = (int(x) for x in match.groups()[:3]) if match else (0, 0, 0)
+    numbers = (major, minor, patch, build % 65536)
+    dotted = ".".join(str(n) for n in numbers)
+    return f"""# UTF-8
+VSVersionInfo(
+  ffi=FixedFileInfo(filevers={numbers}, prodvers={numbers}, mask=0x3f, flags=0x0, OS=0x40004,
+                    fileType=0x1, subtype=0x0, date=(0, 0)),
+  kids=[
+    StringFileInfo([StringTable('040904B0', [
+      StringStruct('CompanyName', 'Pickframe'),
+      StringStruct('FileDescription', 'Pickframe - local AI photo culling'),
+      StringStruct('FileVersion', '{dotted}'),
+      StringStruct('InternalName', 'Pickframe'),
+      StringStruct('LegalCopyright', 'GPL-3.0-or-later'),
+      StringStruct('OriginalFilename', 'Pickframe.exe'),
+      StringStruct('ProductName', 'Pickframe'),
+      StringStruct('ProductVersion', '{version} (build {build})')])]),
+    VarFileInfo([VarStruct('Translation', [1033, 1200])])
+  ]
+)
+"""
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--build", type=int, default=int(os.environ.get("GITHUB_RUN_NUMBER", "0") or 0))
+    parser.add_argument("--commit", default=os.environ.get("GITHUB_SHA", "") or None)
+    parser.add_argument("--channel", default="ci", choices=["dev", "ci", "release"])
+    parser.add_argument("--check-tag", metavar="TAG", help="verify the tag matches the package version")
+    parser.add_argument("--windows-version-file", type=Path, metavar="PATH")
+    parser.add_argument("--release-notes", type=Path, metavar="PATH", help="write this version's changelog section")
+    parser.add_argument("--github-output", action="store_true")
+    parser.add_argument("--no-write", action="store_true", help="only run the checks")
+    args = parser.parse_args(argv)
+
+    version = package_version()
+    if args.check_tag:
+        check_tag(args.check_tag, version)
+    commit = args.commit or git_commit()
+    date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if not args.no_write:
+        BUILD.write_text(
+            '"""Build metadata (generated by tools/stamp_build.py)."""\n\n'
+            f'BUILD_NUMBER = "{args.build}"\n'
+            f'COMMIT = "{commit}"\n'
+            f'BUILD_DATE = "{date}"\n'
+            f'CHANNEL = "{args.channel}"\n',
+            encoding="utf-8",
+        )
+    if args.windows_version_file:
+        args.windows_version_file.write_text(windows_version_file(version, args.build), encoding="utf-8")
+    if args.release_notes:
+        args.release_notes.write_text(release_notes(version), encoding="utf-8")
+    if args.github_output and os.environ.get("GITHUB_OUTPUT"):
+        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+            out.write(f"version={version}\nbuild={args.build}\n")
+    print(f"Pickframe {version} build {args.build} ({commit[:7] or 'no commit'}, {date}, {args.channel})")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

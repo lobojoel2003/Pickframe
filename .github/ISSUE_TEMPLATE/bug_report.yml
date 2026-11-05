@@ -1,0 +1,39 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to report a problem. Please do not attach private photos; describe them instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: Version
+      description: Output of `pickframe --version` (or Help → About in the app).
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install Pickframe?
+      options: [Windows installer, Windows zip, macOS dmg, Linux AppImage, Linux tar.gz, pip, from source]
+    validations:
+      required: true
+  - type: input
+    id: files
+    attributes:
+      label: Camera and file types
+      placeholder: e.g. Sony A7 IV, ARW + JPG
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output or error messages
+      render: text

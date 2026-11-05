@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Pickframe to do?
+  - type: input
+    id: app
+    attributes:
+      label: Which photo app do you use with Pickframe?
+      placeholder: Lightroom Classic, darktable, digiKam, Capture One, ...

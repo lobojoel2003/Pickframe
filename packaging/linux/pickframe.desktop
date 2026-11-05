@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Pickframe
+GenericName=Photo Culling
+Comment=Free, local AI photo culling with XMP star ratings
+Exec=Pickframe %F
+Icon=pickframe
+Terminal=false
+Categories=Graphics;Photography;
+Keywords=photo;culling;rating;xmp;lightroom;darktable;digikam;
+MimeType=inode/directory;
+StartupWMClass=Pickframe
